@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply font-sans bg-gray-50 text-gray-900;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-navy-300 rounded-full; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-navy-500 hover:bg-navy-600 text-white font-semibold py-2.5 px-5
+           rounded-xl transition-all duration-200 shadow-sm hover:shadow-md
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-gold {
+    @apply bg-gold-500 hover:bg-gold-600 text-white font-semibold py-2.5 px-5
+           rounded-xl transition-all duration-200 shadow-sm hover:shadow-md;
+  }
+  .btn-outline {
+    @apply border-2 border-navy-500 text-navy-500 hover:bg-navy-500 hover:text-white
+           font-semibold py-2.5 px-5 rounded-xl transition-all duration-200;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100
+           hover:shadow-md transition-shadow duration-200;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+           focus:outline-none focus:ring-2 focus:ring-navy-300 focus:border-navy-400
+           text-gray-800 placeholder:text-gray-400 transition-all duration-200
+           cursor-text;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-green { @apply badge bg-green-100 text-green-700; }
+  .badge-red { @apply badge bg-red-100 text-red-700; }
+  .badge-gold { @apply badge bg-gold-100 text-gold-700; }
+  .badge-navy { @apply badge bg-navy-100 text-navy-700; }
+  .badge-gray { @apply badge bg-gray-100 text-gray-600; }
+
+  .section-title {
+    @apply text-2xl font-bold text-navy-500 mb-1;
+  }
+  .section-sub {
+    @apply text-gray-500 mb-6;
+  }
+}
