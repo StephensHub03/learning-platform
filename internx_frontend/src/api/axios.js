@@ -8,7 +8,8 @@ const api = axios.create({
 // Attach JWT access token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
-  if (token) {
+  const isAuthRoute = config.url?.includes('/auth/login') || config.url?.includes('/auth/register') || config.url?.includes('/auth/refresh')
+  if (token && !isAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
