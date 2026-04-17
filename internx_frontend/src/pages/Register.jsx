@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import toast from 'react-hot-toast'
 import { GraduationCap, User, Mail, Lock, Phone } from 'lucide-react'
+import { getErrorMessages } from '../utils/apiErrors.js'
 
 // ✅ Defined OUTSIDE Register so it's a stable component reference across renders
 function Field({ label, name, type = 'text', icon: Icon, placeholder, form, handle }) {
@@ -48,12 +49,9 @@ export default function Register() {
       toast.success('Account created! Please log in.')
       navigate('/login')
     } catch (err) {
-      const errors = err.response?.data
-      if (errors) {
-        Object.values(errors).flat().forEach(msg => toast.error(msg))
-      } else {
-        toast.error('Registration failed.')
-      }
+      getErrorMessages(err, 'Registration failed.').forEach((message) => {
+        toast.error(message)
+      })
     } finally {
       setLoading(false)
     }
@@ -133,4 +131,3 @@ export default function Register() {
     </div>
   )
 }
-

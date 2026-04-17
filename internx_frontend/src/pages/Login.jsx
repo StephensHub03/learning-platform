@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import toast from 'react-hot-toast'
 import { GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { getErrorMessages } from '../utils/apiErrors.js'
 
 export default function Login() {
   const { login } = useAuth()
@@ -25,7 +26,9 @@ export default function Login() {
       toast.success('Welcome back! 🎓')
       navigate('/')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Invalid credentials.')
+      getErrorMessages(err, 'Invalid credentials.').forEach((message) => {
+        toast.error(message)
+      })
     } finally {
       setLoading(false)
     }
