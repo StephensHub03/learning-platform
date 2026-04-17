@@ -86,21 +86,33 @@ export default function CourseDetail() {
                         </span>
                       </div>
                     </div>
-                    <span className={`badge flex-shrink-0 ${
-                      s.status === 'live' ? 'bg-red-100 text-red-700 animate-pulse' :
-                      s.status === 'completed' ? 'badge-gray' : 'badge-green'
-                    }`}>
-                      {s.status === 'live' ? '🔴 LIVE' : s.status}
+                    <span className={`badge flex-shrink-0 ${getSessionBadgeClass(s.session_state)}`}>
+                      {getSessionLabel(s)}
                     </span>
                   </div>
-                  {s.meet_link && (
+                  {s.can_join ? (
                     <a
                       href={s.meet_link} target="_blank" rel="noopener noreferrer"
                       className="btn-gold w-full text-center text-sm mt-3 block py-2 flex items-center justify-center gap-2"
                     >
-                      <Play size={14} /> Join Meeting
+                      <Play size={14} /> Join Now
                     </a>
-                  )}
+                  ) : s.session_state === 'upcoming' ? (
+                    <Link
+                      to={`/sessions/${s.id}`}
+                      className="btn-primary w-full text-center text-sm mt-3 block py-2"
+                    >
+                      Starts Soon →
+                    </Link>
+                  ) : s.session_state === 'ended' ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full text-center text-sm mt-3 block py-2 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed"
+                    >
+                      Session Ended
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -152,4 +164,16 @@ export default function CourseDetail() {
       </div>
     </Layout>
   )
+}
+
+function getSessionLabel(session) {
+  if (session.session_state === 'live') return 'Join Now'
+  if (session.session_state === 'ended') return 'Session Ended'
+  return 'Starts Soon'
+}
+
+function getSessionBadgeClass(sessionState) {
+  if (sessionState === 'live') return 'bg-red-100 text-red-700 animate-pulse'
+  if (sessionState === 'ended') return 'badge-gray'
+  return 'badge-green'
 }

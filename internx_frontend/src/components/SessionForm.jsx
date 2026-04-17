@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import api from '../api/axios.js'
 import toast from 'react-hot-toast'
 
@@ -6,42 +6,38 @@ import toast from 'react-hot-toast'
  * Modal form for scheduling a Live Session.
  */
 export default function SessionForm({ courseId, initialData, onSuccess, onCancel }) {
-  const [form, setForm] = useState(initialData || {
-    title: '',
-    description: '',
-    scheduled_at: '',
-    duration_minutes: 60,
-    meet_link: '',
-    status: 'scheduled'
-  })
+  const initialForm = useMemo(() => ({
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    scheduled_at: formatDateTimeLocal(initialData?.scheduled_at || ''),
+    duration_minutes: String(initialData?.duration_minutes || 60),
+    status: initialData?.status || 'scheduled',
+  }), [initialData])
+  const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(false)
 
   const isEdit = !!initialData?.id
-
-  // Format date for datetime-local input
-  if (form.scheduled_at && !form.scheduled_at.endsWith('Z')) {
-    // Already formatted or needs formatting
-  } else if (form.scheduled_at) {
-    const d = new Date(form.scheduled_at)
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-    form.scheduled_at = d.toISOString().slice(0, 16)
-  }
 
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const payload = { ...form, course: courseId }
+      const payload = {
+        ...form,
+        course: Number(courseId),
+        scheduled_at: toApiDateTime(form.scheduled_at),
+        duration_minutes: normalizeDuration(form.duration_minutes),
+      }
       if (isEdit) {
         await api.put(`/sessions/${initialData.id}/`, payload)
         toast.success('Session updated!')
       } else {
         await api.post('/sessions/', payload)
-        toast.success('Live class scheduled!')
+        toast.success('Timetable saved. Meet link will be generated automatically.')
       }
       onSuccess()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save session')
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -73,13 +69,28 @@ export default function SessionForm({ courseId, initialData, onSuccess, onCancel
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              rows="3"
+              placeholder="Add agenda or class notes for students"
+              className="input min-h-24 py-3"
+              value={form.description}
+              onChange={e => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Min)</label>
               <input
                 type="number" min="15" step="15" required
                 className="input" value={form.duration_minutes}
-                onChange={e => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 60 })}
+                onChange={e => setForm({ ...form, duration_minutes: e.target.value })}
+                onBlur={e => setForm({
+                  ...form,
+                  duration_minutes: String(normalizeDuration(e.target.value)),
+                })}
               />
             </div>
             <div>
@@ -89,8 +100,8 @@ export default function SessionForm({ courseId, initialData, onSuccess, onCancel
                 onChange={e => setForm({ ...form, status: e.target.value })}
               >
                 <option value="scheduled">Scheduled</option>
-                <option value="live">Live Now</option>
-                <option value="completed">Completed</option>
+                {isEdit && <option value="live">Live Now</option>}
+                {isEdit && <option value="completed">Completed</option>}
               </select>
             </div>
           </div>
@@ -98,10 +109,15 @@ export default function SessionForm({ courseId, initialData, onSuccess, onCancel
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Google Meet Link</label>
             <input
-              type="url" placeholder="https://meet.google.com/..."
-              className="input" value={form.meet_link}
-              onChange={e => setForm({ ...form, meet_link: e.target.value })}
+              type="text"
+              placeholder="Generated automatically 10 minutes before class"
+              className="input bg-gray-50 text-gray-400"
+              value={initialData?.meet_link || ''}
+              readOnly
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Faculty only needs to save the timetable. The backend will create and send the Meet invite automatically.
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -119,4 +135,41 @@ export default function SessionForm({ courseId, initialData, onSuccess, onCancel
       </div>
     </div>
   )
+}
+
+function formatDateTimeLocal(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
+  return date.toISOString().slice(0, 16)
+}
+
+function toApiDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  return date.toISOString()
+}
+
+function getErrorMessage(err) {
+  const data = err?.response?.data
+  if (!data) return 'Failed to save session'
+  if (typeof data.detail === 'string') return data.detail
+  if (typeof data.error === 'string') return data.error
+  if (typeof data === 'string') return data
+
+  const firstEntry = Object.entries(data).find(([, value]) => value)
+  if (!firstEntry) return 'Failed to save session'
+
+  const [field, value] = firstEntry
+  if (Array.isArray(value)) return `${field.replaceAll('_', ' ')}: ${value[0]}`
+  if (typeof value === 'string') return `${field.replaceAll('_', ' ')}: ${value}`
+  return 'Failed to save session'
+}
+
+function normalizeDuration(value) {
+  const parsed = parseInt(value, 10)
+  if (Number.isNaN(parsed)) return 60
+  if (parsed < 15) return 15
+  return parsed
 }

@@ -18,6 +18,7 @@ export default function FacultyCourseManage() {
   const [assignments, setAssignments] = useState([])
   const [results, setResults] = useState([])
   const [students, setStudents] = useState([])
+  const [calendarStatus, setCalendarStatus] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Modals
@@ -31,7 +32,7 @@ export default function FacultyCourseManage() {
         api.get('/sessions/', { params: { course: id } }),
         api.get('/assignments/', { params: { course: id } }),
         api.get('/results/', { params: { assignment__course: id } }),
-        api.get(`/courses/${id}/students/`)
+        api.get(`/courses/${id}/students/`),
       ])
       setCourse(c.data)
       setSessions(s.data.results || s.data)
@@ -46,6 +47,30 @@ export default function FacultyCourseManage() {
   }
 
   useEffect(() => { loadAll() }, [id])
+
+  useEffect(() => {
+    api.get('/sessions/google-calendar/connect/')
+      .then(r => setCalendarStatus(r.data))
+      .catch(() => setCalendarStatus({ connected: false }))
+  }, [])
+
+  const connectGoogleCalendar = async () => {
+    try {
+      const { data } = await api.get('/sessions/google-calendar/connect/')
+      setCalendarStatus(data)
+      if (data.connected) {
+        toast.success('Google Calendar is already connected')
+        return
+      }
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url
+        return
+      }
+      toast.error(data.error || 'Could not start Google Calendar connection')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not start Google Calendar connection')
+    }
+  }
 
   const deleteSession = async (sid) => {
     if (!confirm('Delete this session?')) return
@@ -95,6 +120,26 @@ export default function FacultyCourseManage() {
       {/* Sessions Tab */}
       {activeTab === 'sessions' && (
         <div className="animate-fade-in">
+          <div className={`mb-5 rounded-2xl border p-4 flex items-center justify-between gap-4 ${
+            calendarStatus?.connected
+              ? 'bg-green-50 border-green-100'
+              : 'bg-amber-50 border-amber-100'
+          }`}>
+            <div>
+              <p className="font-bold text-navy-500">Google Calendar</p>
+              <p className="text-sm text-gray-600">
+                {calendarStatus?.connected
+                  ? 'Connected. Meet links will be created automatically for scheduled classes.'
+                  : 'Not connected. Sessions can be saved, but Meet links will not be generated until you connect Google Calendar.'}
+              </p>
+            </div>
+            {!calendarStatus?.connected && (
+              <button onClick={connectGoogleCalendar} className="btn-primary whitespace-nowrap">
+                Connect Calendar
+              </button>
+            )}
+          </div>
+
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-navy-500">Live Class Schedule</h3>
             <button onClick={() => setShowSessionForm(true)} className="btn-gold flex items-center gap-2">
@@ -114,11 +159,13 @@ export default function FacultyCourseManage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className={`badge ${s.status === 'live' ? 'bg-red-500 text-white animate-pulse' : 'badge-navy'}`}>{s.status}</span>
+                    <span className={`badge ${getFacultySessionBadgeClass(s.session_state)}`}>
+                      {s.display_status || s.session_state}
+                    </span>
                     <button onClick={() => deleteSession(s.id)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16} /></button>
                   </div>
                 </div>
-                {s.meet_link && (
+                {s.meet_link && s.session_state !== 'ended' && (
                   <div className="mt-4 pt-4 border-t border-gray-100 bg-gray-50 -mx-5 px-5 -mb-5 rounded-b-2xl">
                     <p className="text-xs font-bold text-gray-400 mb-1">GOOGLE MEET LINK</p>
                     <a href={s.meet_link} target="_blank" className="text-navy-500 font-medium hover:underline text-sm truncate block">{s.meet_link}</a>
@@ -230,4 +277,10 @@ export default function FacultyCourseManage() {
       )}
     </Layout>
   )
+}
+
+function getFacultySessionBadgeClass(sessionState) {
+  if (sessionState === 'live') return 'bg-red-500 text-white animate-pulse'
+  if (sessionState === 'ended') return 'badge-gray'
+  return 'badge-navy'
 }
