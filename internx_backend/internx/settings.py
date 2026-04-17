@@ -4,6 +4,8 @@ Django settings for InternX platform.
 import os
 from pathlib import Path
 import environ
+import dj_database_url
+from datetime import timedelta
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,7 +16,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = env.bool('DEBUG', default=False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['.railway.app','localhost', '127.0.0.1'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -73,16 +75,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'internx.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='internx_db'),
-        'USER': env('DB_USER', default='internx_user'),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+database_url = env('DATABASE_URL', default='')
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DB_NAME', default='internx_db'),
+            'USER': env('DB_USER', default='internx_user'),
+            'PASSWORD': env('DB_PASSWORD', default=''),
+            'HOST': env('DB_HOST', default='localhost'),
+            'PORT': env('DB_PORT', default='5432'),
+        }
+    }
 
 # Cache (Redis)
 CACHES = {
@@ -122,7 +134,6 @@ REST_FRAMEWORK = {
 }
 
 # JWT
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -130,11 +141,22 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+CORS_ALLOWED_ORIGINS = env.list(
+    'CORS_ALLOWED_ORIGINS',
+    default=[
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        FRONTEND_URL,
+    ],
+)
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=[
+        FRONTEND_URL,
+    ],
+)
 
 # Celery
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
@@ -182,7 +204,7 @@ GOOGLE_CALENDAR_REDIRECT_URI = env(
 GOOGLE_CALENDAR_ID = env('GOOGLE_CALENDAR_ID', default='primary')
 
 # Frontend URL (for QR verification links)
-FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+# Defined above for CORS and reused here for QR verification links.
 
 # Static & Media
 STATIC_URL = '/static/'
