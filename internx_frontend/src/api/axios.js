@@ -1,6 +1,21 @@
 import axios from 'axios'
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const FALLBACK_PROD_API_URL = 'https://lms-backend-production-52d8.up.railway.app'
+
+function getApiBaseUrl() {
+  const configuredUrl = (import.meta.env.VITE_API_URL || '').trim()
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, '')
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')) {
+    return FALLBACK_PROD_API_URL
+  }
+
+  return ''
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 const api = axios.create({
   baseURL: API_BASE_URL ? `${API_BASE_URL}/api` : '/api',
