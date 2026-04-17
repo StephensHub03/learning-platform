@@ -143,6 +143,16 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
+CELERY_BEAT_SCHEDULE = {
+    'schedule-upcoming-google-meet-sessions-every-minute': {
+        'task': 'apps.sessions.tasks.schedule_upcoming_google_meet_sessions',
+        'schedule': 60.0,
+    },
+    'sync-ended-sessions-every-minute': {
+        'task': 'apps.sessions.tasks.sync_session_end_states',
+        'schedule': 60.0,
+    },
+}
 
 # Email
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -157,6 +167,19 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='InternX <noreply@internx
 GOOGLE_CALENDAR_CREDENTIALS_PATH = env(
     'GOOGLE_CALENDAR_CREDENTIALS_PATH', default='credentials.json'
 )
+GOOGLE_CALENDAR_CLIENT_SECRET_PATH = env(
+    'GOOGLE_CALENDAR_CLIENT_SECRET_PATH',
+    default=GOOGLE_CALENDAR_CREDENTIALS_PATH,
+)
+GOOGLE_CALENDAR_TOKEN_PATH = env(
+    'GOOGLE_CALENDAR_TOKEN_PATH',
+    default=str(BASE_DIR / 'google_calendar_token.json'),
+)
+GOOGLE_CALENDAR_REDIRECT_URI = env(
+    'GOOGLE_CALENDAR_REDIRECT_URI',
+    default='http://127.0.0.1:8000',
+)
+GOOGLE_CALENDAR_ID = env('GOOGLE_CALENDAR_ID', default='primary')
 
 # Frontend URL (for QR verification links)
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')

@@ -4,8 +4,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from apps.sessions.views import GoogleCalendarCallbackView
 
 urlpatterns = [
+    path('', GoogleCalendarCallbackView.as_view(), name='google-calendar-root-callback'),
     path('admin/', admin.site.urls),
 
     # API Schema & Docs
