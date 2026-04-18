@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/assignments/', include('apps.assignments.urls')),
     path('api/results/', include('apps.results.urls')),
     path('api/certificates/', include('apps.certificates.urls')),
+    path('api/chat/', include('apps.chat.urls')),
     path('api/admin-panel/', include('apps.users.admin_urls')),
 ]
 

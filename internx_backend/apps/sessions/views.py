@@ -220,6 +220,16 @@ class GoogleCalendarCallbackView(APIView):
 
         code = request.query_params.get('code')
         state = request.query_params.get('state')
+        if request.path == '/' and not code and not state:
+            return Response(
+                {
+                    'status': 'ok',
+                    'service': 'InternX backend',
+                    'docs_url': '/api/docs/',
+                    'schema_url': '/api/schema/',
+                }
+            )
+
         if not code or not state:
             return HttpResponse(
                 'Missing Google Calendar callback parameters.',

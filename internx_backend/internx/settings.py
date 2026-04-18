@@ -2,6 +2,7 @@
 Django settings for InternX platform.
 """
 import os
+import importlib.util
 from pathlib import Path
 import environ
 import dj_database_url
@@ -19,6 +20,8 @@ DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['.railway.app','localhost', '127.0.0.1'])
 
 # Application definition
+HAS_CHANNELS = importlib.util.find_spec('channels') is not None
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,7 +43,11 @@ INSTALLED_APPS = [
     'apps.results',
     'apps.certificates',
     'apps.notifications',
+    'apps.chat',
 ]
+
+if HAS_CHANNELS:
+    INSTALLED_APPS.insert(6, 'channels')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -55,6 +62,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'internx.urls'
+if HAS_CHANNELS:
+    ASGI_APPLICATION = 'internx.asgi.application'
 
 TEMPLATES = [
     {
@@ -106,6 +115,16 @@ CACHES = {
         }
     }
 }
+
+if HAS_CHANNELS:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [env('REDIS_URL', default='redis://localhost:6379/0')],
+            },
+        },
+    }
 
 # Auth
 AUTH_USER_MODEL = 'users.User'
