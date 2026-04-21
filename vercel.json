@@ -1,8 +1,22 @@
 {
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "src": "internx_backend/api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "internx_frontend/package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "internx_backend/api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "internx_frontend/$1"
     }
   ]
 }
