@@ -99,9 +99,9 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': env('DB_NAME', default='internx_db'),
             'USER': env('DB_USER', default='internx_user'),
-            'PASSWORD': env('DB_PASSWORD', default=''),
+            'PASSWORD': env('DB_PASSWORD', default='123'),
             'HOST': env('DB_HOST', default='localhost'),
-            'PORT': env('DB_PORT', default='5432'),
+            'PORT': env('DB_PORT', default='5433'),
         }
     }
 
