@@ -8,6 +8,20 @@ import environ
 import dj_database_url
 from datetime import timedelta
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.vercel.app",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://learning-platform-beta-one.vercel.app",
+]
+
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
