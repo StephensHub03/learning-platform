@@ -191,11 +191,20 @@ CORS_ALLOWED_ORIGINS = env.list(
         FRONTEND_URL,
     ],
 )
+CORS_ALLOWED_ORIGIN_REGEXES = env.list(
+    'CORS_ALLOWED_ORIGIN_REGEXES',
+    default=[
+        r'^https://.*\.vercel\.app$',
+        r'^https://.*\.railway\.app$',
+    ],
+)
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list(
     'CSRF_TRUSTED_ORIGINS',
     default=[
         FRONTEND_URL,
+        'https://*.vercel.app',
+        'https://*.railway.app',
     ],
 )
 
