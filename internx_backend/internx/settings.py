@@ -39,7 +39,14 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = env.bool('DEBUG', default=False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = list(
+    dict.fromkeys(
+        env.list('ALLOWED_HOSTS', default=['*']) + [
+            '.vercel.app',
+            '.railway.app',
+        ]
+    )
+)
 
 # Application definition
 HAS_CHANNELS = importlib.util.find_spec('channels') is not None
