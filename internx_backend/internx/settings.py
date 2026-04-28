@@ -105,6 +105,25 @@ def extract_database_url(raw_value: str) -> str:
     return value
 
 
+def build_split_database_config():
+    db_name = env('PGDATABASE', default='') or env('POSTGRES_DB', default='') or env('DB_NAME', default='')
+    db_host = env('PGHOST', default='') or env('POSTGRES_HOST', default='') or env('DB_HOST', default='')
+    db_port = env('PGPORT', default='') or env('POSTGRES_PORT', default='') or env('DB_PORT', default='5433')
+    db_user = env('PGUSER', default='') or env('POSTGRES_USER', default='') or env('DB_USER', default='')
+    db_password = env('PGPASSWORD', default='') or env('POSTGRES_PASSWORD', default='') or env('DB_PASSWORD', default='')
+
+    return {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name or 'internx_db',
+            'USER': db_user or 'internx_user',
+            'PASSWORD': db_password or '123',
+            'HOST': db_host or 'localhost',
+            'PORT': db_port,
+        }
+    }
+
+
 def build_database_config():
     database_url = extract_database_url(
         env('DATABASE_URL', default='')
@@ -113,75 +132,70 @@ def build_database_config():
         or env('POSTGRES_PUBLIC_URL', default='')
     )
     if database_url:
-        config = dj_database_url.parse(
-            database_url,
-            conn_max_age=600,
-            ssl_require=not DEBUG,
-        )
+        try:
+            config = dj_database_url.parse(
+                database_url,
+                conn_max_age=600,
+                ssl_require=not DEBUG,
+            )
 
-        # Some hosted providers expose partial URLs or split credentials across PG* vars.
-        parsed = urlparse(database_url)
-        query_params = parse_qs(parsed.query)
-        db_name = (
-            config.get('NAME')
-            or parsed.path.lstrip('/')
-            or env('PGDATABASE', default='')
-            or env('POSTGRES_DB', default='')
-            or env('DB_NAME', default='')
-            or query_params.get('dbname', [''])[0]
-        )
-        db_host = (
-            config.get('HOST')
-            or parsed.hostname
-            or env('PGHOST', default='')
-            or env('POSTGRES_HOST', default='')
-            or env('DB_HOST', default='')
-        )
-        db_port = (
-            str(config.get('PORT') or '')
-            or (str(parsed.port) if parsed.port else '')
-            or env('PGPORT', default='')
-            or env('POSTGRES_PORT', default='')
-            or env('DB_PORT', default='')
-        )
-        db_user = (
-            config.get('USER')
-            or parsed.username
-            or env('PGUSER', default='')
-            or env('POSTGRES_USER', default='')
-            or env('DB_USER', default='')
-        )
-        db_password = (
-            config.get('PASSWORD')
-            or parsed.password
-            or env('PGPASSWORD', default='')
-            or env('POSTGRES_PASSWORD', default='')
-            or env('DB_PASSWORD', default='')
-        )
+            # Some hosted providers expose partial URLs or split credentials across PG* vars.
+            parsed = urlparse(database_url)
+            query_params = parse_qs(parsed.query)
+            db_name = (
+                config.get('NAME')
+                or parsed.path.lstrip('/')
+                or env('PGDATABASE', default='')
+                or env('POSTGRES_DB', default='')
+                or env('DB_NAME', default='')
+                or query_params.get('dbname', [''])[0]
+            )
+            db_host = (
+                config.get('HOST')
+                or parsed.hostname
+                or env('PGHOST', default='')
+                or env('POSTGRES_HOST', default='')
+                or env('DB_HOST', default='')
+            )
+            db_port = (
+                str(config.get('PORT') or '')
+                or (str(parsed.port) if parsed.port else '')
+                or env('PGPORT', default='')
+                or env('POSTGRES_PORT', default='')
+                or env('DB_PORT', default='')
+            )
+            db_user = (
+                config.get('USER')
+                or parsed.username
+                or env('PGUSER', default='')
+                or env('POSTGRES_USER', default='')
+                or env('DB_USER', default='')
+            )
+            db_password = (
+                config.get('PASSWORD')
+                or parsed.password
+                or env('PGPASSWORD', default='')
+                or env('POSTGRES_PASSWORD', default='')
+                or env('DB_PASSWORD', default='')
+            )
 
-        if db_name:
-            config['NAME'] = db_name
-        if db_host:
-            config['HOST'] = db_host
-        if db_port:
-            config['PORT'] = db_port
-        if db_user:
-            config['USER'] = db_user
-        if db_password:
-            config['PASSWORD'] = db_password
+            if db_name:
+                config['NAME'] = db_name
+            if db_host:
+                config['HOST'] = db_host
+            if db_port:
+                config['PORT'] = db_port
+            if db_user:
+                config['USER'] = db_user
+            if db_password:
+                config['PASSWORD'] = db_password
 
-        return {'default': config}
+            if config.get('HOST') and config.get('NAME'):
+                return {'default': config}
+        except Exception:
+            pass
 
-    return {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME', default='internx_db'),
-            'USER': env('DB_USER', default='internx_user'),
-            'PASSWORD': env('DB_PASSWORD', default='123'),
-            'HOST': env('DB_HOST', default='localhost'),
-            'PORT': env('DB_PORT', default='5433'),
-        }
-    }
+    return build_split_database_config()
 
 # Database
 DATABASES = build_database_config()
