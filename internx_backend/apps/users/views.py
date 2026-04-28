@@ -4,9 +4,11 @@ Provides: Register, Profile, Admin user management.
 """
 import logging
 
+from django.db import connection
 from rest_framework import generics, status, permissions, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User
@@ -46,6 +48,38 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class HealthCheckView(APIView):
+    """Lightweight deployment health check for database-backed auth flows."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+                row = cursor.fetchone()
+
+            users_table_present = 'users_user' in connection.introspection.table_names()
+            return Response(
+                {
+                    'ok': bool(row and row[0] == 1),
+                    'database': 'connected',
+                    'users_table_present': users_table_present,
+                }
+            )
+        except Exception as exc:
+            logger.exception('Health check failed')
+            return Response(
+                {
+                    'ok': False,
+                    'database': 'error',
+                    'error_type': exc.__class__.__name__,
+                    'error': str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 class AdminUserViewSet(viewsets.ModelViewSet):
