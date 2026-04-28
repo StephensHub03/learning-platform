@@ -2,6 +2,8 @@
 Views for user authentication and profile management.
 Provides: Register, Profile, Admin user management.
 """
+import logging
+
 from rest_framework import generics, status, permissions, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +12,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User
 from .serializers import RegisterSerializer, UserProfileSerializer, UserListSerializer
 from apps.notifications.tasks import send_registration_email
+
+logger = logging.getLogger(__name__)
 
 
 class IsAdmin(permissions.BasePermission):
@@ -27,8 +31,11 @@ class RegisterView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
-        # Trigger async registration email
-        send_registration_email.delay(user.id)
+        # Registration should succeed even if the background worker is unavailable.
+        try:
+            send_registration_email.delay(user.id)
+        except Exception as exc:
+            logger.warning('Failed to queue registration email for user %s: %s', user.id, exc)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):

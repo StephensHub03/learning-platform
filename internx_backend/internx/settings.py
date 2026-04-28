@@ -4,32 +4,10 @@ Django settings for InternX platform.
 import os
 import importlib.util
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 import environ
 import dj_database_url
 from datetime import timedelta
-
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.vercel.app",
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://learning-platform-beta-one.vercel.app",
-]
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    ...
-]
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,6 +17,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = env.bool('DEBUG', default=False)
+if os.getenv('VERCEL'):
+    DEBUG = False
 ALLOWED_HOSTS = list(
     dict.fromkeys(
         env.list('ALLOWED_HOSTS', default=['*']) + [
@@ -112,18 +92,70 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'internx.wsgi.application'
 
-# Database
-database_url = env('DATABASE_URL', default='')
-if database_url:
-    DATABASES = {
-        'default': dj_database_url.parse(
+
+def build_database_config():
+    database_url = env('DATABASE_URL', default='').strip()
+    if database_url:
+        config = dj_database_url.parse(
             database_url,
             conn_max_age=600,
             ssl_require=not DEBUG,
         )
-    }
-else:
-    DATABASES = {
+
+        # Some hosted providers expose partial URLs or split credentials across PG* vars.
+        parsed = urlparse(database_url)
+        query_params = parse_qs(parsed.query)
+        db_name = (
+            config.get('NAME')
+            or parsed.path.lstrip('/')
+            or env('PGDATABASE', default='')
+            or env('POSTGRES_DB', default='')
+            or env('DB_NAME', default='')
+            or query_params.get('dbname', [''])[0]
+        )
+        db_host = (
+            config.get('HOST')
+            or parsed.hostname
+            or env('PGHOST', default='')
+            or env('POSTGRES_HOST', default='')
+            or env('DB_HOST', default='')
+        )
+        db_port = (
+            str(config.get('PORT') or '')
+            or (str(parsed.port) if parsed.port else '')
+            or env('PGPORT', default='')
+            or env('POSTGRES_PORT', default='')
+            or env('DB_PORT', default='')
+        )
+        db_user = (
+            config.get('USER')
+            or parsed.username
+            or env('PGUSER', default='')
+            or env('POSTGRES_USER', default='')
+            or env('DB_USER', default='')
+        )
+        db_password = (
+            config.get('PASSWORD')
+            or parsed.password
+            or env('PGPASSWORD', default='')
+            or env('POSTGRES_PASSWORD', default='')
+            or env('DB_PASSWORD', default='')
+        )
+
+        if db_name:
+            config['NAME'] = db_name
+        if db_host:
+            config['HOST'] = db_host
+        if db_port:
+            config['PORT'] = db_port
+        if db_user:
+            config['USER'] = db_user
+        if db_password:
+            config['PASSWORD'] = db_password
+
+        return {'default': config}
+
+    return {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': env('DB_NAME', default='internx_db'),
@@ -133,6 +165,9 @@ else:
             'PORT': env('DB_PORT', default='5433'),
         }
     }
+
+# Database
+DATABASES = build_database_config()
 
 # Cache (Redis)
 CACHES = {
