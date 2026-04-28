@@ -3,6 +3,7 @@ Django settings for InternX platform.
 """
 import os
 import importlib.util
+import re
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 import environ
@@ -93,8 +94,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'internx.wsgi.application'
 
 
+def extract_database_url(raw_value: str) -> str:
+    if not raw_value:
+        return ''
+
+    value = raw_value.strip().strip('"').strip("'")
+    match = re.search(r'(postgres(?:ql)?://[^\s\'"]+)', value)
+    if match:
+        return match.group(1)
+    return value
+
+
 def build_database_config():
-    database_url = env('DATABASE_URL', default='').strip()
+    database_url = extract_database_url(
+        env('DATABASE_URL', default='')
+        or env('DATABASE_PUBLIC_URL', default='')
+        or env('POSTGRES_URL', default='')
+        or env('POSTGRES_PUBLIC_URL', default='')
+    )
     if database_url:
         config = dj_database_url.parse(
             database_url,
